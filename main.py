@@ -135,3 +135,4 @@ while run:
         display.update()
     # цикл спрацьовує кожні 0.05 секунд
         time.Clock().tick(40)
+
