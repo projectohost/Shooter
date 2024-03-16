@@ -1,18 +1,18 @@
 from pygame import *
-from random import*
- 
+from random import randint
+
 # фонова музика
 mixer.init()
-mixer.music.load('space.ogg')
+mixer.music.load('./space.ogg')
 mixer.music.play()
 fire_sound = mixer.Sound('fire.ogg')
- 
+
 # шрифти і написи
 font.init()
 font1 = font.Font(None, 80)
-font2 = font.Font(None, 36)
 win = font1.render('YOU WIN!', True, (255, 255, 255))
 lose = font1.render('YOU LOSE!', True, (180, 0, 0))
+font2 = font.Font(None, 36)
 
 # нам потрібні такі картинки:
 img_back = "galaxy.jpg"  # фон гри
@@ -21,6 +21,7 @@ img_bullet = "bullet.png" # куля
 img_enemy = "ufo.png"  # ворог
  
 score = 0  # збито кораблів
+goal = 10 # стільки кораблів потрібно збити для перемоги
 lost = 0  # пропущено кораблів
 max_lost = 3 # програли, якщо пропустили стільки
 # клас-батько для інших спрайтів
@@ -88,7 +89,7 @@ window = display.set_mode((win_width, win_height))
 background = transform.scale(image.load(img_back), (win_width, win_height))
  
 # створюємо спрайти
-ship = Player(img_hero, 5, win_height - 100, 80, 100, 10)
+ship = Player(img_hero, 5, win_height - 100, 60, 80, 10)
  
 monsters = sprite.Group()
 for i in range(1, 6):
@@ -113,26 +114,47 @@ while run:
             if e.key == K_SPACE:
                 fire_sound.play()
                 ship.fire()
-
+    
+    # сама гра: дії спрайтів, перевірка правил гри, перемальовка
     if not finish:
         # оновлюємо фон
         window.blit(background, (0, 0))
+ 
         # пишемо текст на екрані
         text = font2.render("Рахунок: " + str(score), 1, (255, 255, 255))
         window.blit(text, (10, 20))
  
         text_lose = font2.render("Пропущено: " + str(lost), 1, (255, 255, 255))
         window.blit(text_lose, (10, 50))
+ 
         # рухи спрайтів
         ship.update()
         monsters.update()
         bullets.update()
+
         # оновлюємо їх у новому місці при кожній ітерації циклу
         ship.reset()
         monsters.draw(window)
         bullets.draw(window)
- 
+
+        # перевірка зіткнення кулі та монстрів (і монстр, і куля при зіткненні зникають)
+        collides = sprite.groupcollide(monsters, bullets, True, True)
+        for c in collides:
+            # цей цикл повториться стільки разів, скільки монстрів збито
+            score = score + 1
+            monster = Enemy(img_enemy, randint(80, win_width - 80), -40, 80, 50, randint(1, 5))
+            monsters.add(monster)
+
+        # можливий програш: пропустили занадто багато або герой зіткнувся з ворогом
+        if sprite.spritecollide(ship, monsters, False) or lost >= max_lost:
+            finish = True # програли, ставимо тло і більше не керуємо спрайтами.
+            window.blit(lose, (200, 200))
+            
+        # перевірка виграшу: скільки очок набрали?
+        if score >= 10:
+            finish = True
+            window.blit(win, (200, 200))
+
         display.update()
     # цикл спрацьовує кожні 0.05 секунд
         time.Clock().tick(40)
-
